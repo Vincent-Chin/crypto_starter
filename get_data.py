@@ -41,21 +41,27 @@ def getCrypto(symbol, initDate, finalDate, exchange="CCCAGG",
     startDate = parser.parse(str(initDate))
     endDate = parser.parse(str(finalDate))
 
-    # current date is incomplete in GMT, so drop it from request.
-    if completeOnly:
-        if dt.datetime.now().utcnow().date() == endDate.date():
-            endDate -= dt.timedelta(days=1)
-
     # figure out the difference between the two dates, use that as the limit
     limit = (endDate - startDate).total_seconds()
     baseURL = "https://min-api.cryptocompare.com/data/histoday"
+    current_time = dt.datetime.now().utcnow()
     if data_type == "daily":
-        limit = int(max(1, limit / 86400))
+        # current date is incomplete in GMT, so drop it from request.
+        if completeOnly and current_time.date() == endDate.date():
+            endDate -= dt.timedelta(days=1)
+        limit = int(min(max(1, limit / 86400), 2000))
     elif data_type == "hourly":
-        limit = int(max(1, limit / 3600))
+        # offset for hours
+        if completeOnly and current_time.date() == endDate.date() and current_time.hour == endDate.hour:
+            endDate -= dt.timedelta(hours=1)
+        limit = int(min(max(1, limit / 3600), 2000))
         baseURL = "https://min-api.cryptocompare.com/data/histohour"
     elif data_type == "minutely":
-        limit = int(max(1, limit))
+        # offset for minutes
+        if completeOnly and current_time.date() == endDate.date() and current_time.hour == endDate.hour and\
+           current_time.minute == endDate.minute:
+            endDate -= dt.timedelta(minutes=1)
+        limit = int(min(max(1, limit), 2000))
         baseURL = "https://min-api.cryptocompare.com/data/histominute"
 
     # split the symbol
