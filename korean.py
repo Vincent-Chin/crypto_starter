@@ -19,8 +19,7 @@ def main():
     for symbol in symbols:
         for exchange in exchanges:
             try:
-                data = gd.getDaily(symbol, initDate, finalDate, exchange,
-                                        completeOnly, exWeekends)
+                data = gd.getCrypto(symbol, initDate, finalDate, exchange, completeOnly, exWeekends, data_type="daily")
                 data['Symbol'] = symbol
                 data['Exchange'] = exchange
                 data['Timestamp'] = data.index

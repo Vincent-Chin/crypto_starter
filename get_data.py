@@ -6,6 +6,7 @@ import json
 import datetime as dt
 import time
 
+
 #######################################################################
 # drops invalid data from our history
 def dropDirty(history, exWeekends):
@@ -32,22 +33,30 @@ def dropDirty(history, exWeekends):
     return history
 #######################################################################
 
+
 #######################################################################
-# pulls daily crypto data
-# internal; dont use directly
-def _getCrypto(baseURL, symbol, initDate, finalDate, exchange="CCCAGG",
-              completeOnly=True, exWeekends=False):
+# pulls any crypto data
+def getCrypto(symbol, initDate, finalDate, exchange="CCCAGG",
+               completeOnly=True, exWeekends=False, data_type="daily"):
     startDate = parser.parse(str(initDate))
     endDate = parser.parse(str(finalDate))
+
     # current date is incomplete in GMT, so drop it from request.
     if completeOnly:
-        endDate -= dt.timedelta(days=1)
+        if dt.datetime.now().utcnow().date() == endDate.date():
+            endDate -= dt.timedelta(days=1)
 
-    # figure out the day difference between the two dates,
-    # use that as the limit
-    limit = (endDate - startDate).days
-
-    # https://www.cryptocompare.com/api/#-api-data-histoday-
+    # figure out the difference between the two dates, use that as the limit
+    limit = (endDate - startDate).total_seconds()
+    baseURL = "https://min-api.cryptocompare.com/data/histoday"
+    if data_type == "daily":
+        limit = int(max(1, limit / 86400))
+    elif data_type == "hourly":
+        limit = int(max(1, limit / 3600))
+        baseURL = "https://min-api.cryptocompare.com/data/histohour"
+    elif data_type == "minutely":
+        limit = int(max(1, limit))
+        baseURL = "https://min-api.cryptocompare.com/data/histominute"
 
     # split the symbol
     if len(symbol) == 6:
@@ -79,6 +88,16 @@ def _getCrypto(baseURL, symbol, initDate, finalDate, exchange="CCCAGG",
 
     # rename and reindex for our internal compatibility
     # drops timestamp component after setting it as an index
+    """
+    https://bitcointalk.org/index.php?topic=1995403.0 
+    "volumeto" means the volume in the currency that is being traded
+    "volumefrom" means the volume in the base currency that things are traded into.
+
+    lets say you are looking at the Doge/BTC market.
+    the volumeto is the Doge volume for example 1,000,000
+    the volumefrom is the BTC volume which if we assume Doge price was 100 fixed it will be 10,000 
+    """
+
     info = info[info.close > 0].copy()
     info['time'] = pd.to_datetime(info.time, unit='s')
     info = info.dropna()
@@ -88,45 +107,11 @@ def _getCrypto(baseURL, symbol, initDate, finalDate, exchange="CCCAGG",
     info['High'] = info.high
     info['Low'] = info.low
     info['Close'] = info.close
-    info['Volume'] = info.volumefrom.astype(int) # drop off less than whole unit
+    info['Volume'] = info.volumefrom
     info = info.drop(['close', 'high', 'open', 'low',
                       'volumefrom', 'volumeto', 'time'], axis=1)
 
     info = dropDirty(info, exWeekends)
 
     return info
-#######################################################################
-
-#######################################################################
-# pulls daily crypto data
-# Daily: https://www.cryptocompare.com/api/#-api-data-histoday-
-def getDaily(symbol, initDate, finalDate, exchange="CCCAGG",
-              completeOnly=True, exWeekends=False):
-
-    baseURL = "https://min-api.cryptocompare.com/data/histoday"
-
-    return _getCrypto(baseURL, symbol, initDate, finalDate, exchange,
-                      completeOnly, exWeekends)
-#######################################################################
-
-#######################################################################
-# pulls hourly crypto data
-# Hourly (3 months): https://www.cryptocompare.com/api/#-api-data-histohour-
-def getHourly(symbol, initDate, finalDate, exchange="CCCAGG",
-             completeOnly=True, exWeekends=False):
-    baseURL = "https://min-api.cryptocompare.com/data/histohour"
-
-    return _getCrypto(baseURL, symbol, initDate, finalDate, exchange,
-                      completeOnly, exWeekends)
-#######################################################################
-
-#######################################################################
-# pulls minutely crypto data
-# Minutely (7 days): https://www.cryptocompare.com/api/#-api-data-histominute-
-def getMinutely(symbol, initDate, finalDate, exchange="CCCAGG",
-             completeOnly=True, exWeekends=False):
-    baseURL = "https://min-api.cryptocompare.com/data/histominute"
-
-    return _getCrypto(baseURL, symbol, initDate, finalDate, exchange,
-                      completeOnly, exWeekends)
 #######################################################################

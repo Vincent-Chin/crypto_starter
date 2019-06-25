@@ -12,24 +12,24 @@ def main():
     exchange = 'CCCAGG'
     completeOnly = True
     exWeekends = False
-    dailyData = gd.getDaily(symbol, initDate, finalDate, exchange, completeOnly,
-                            exWeekends)
+    dailyData = gd.getCrypto(symbol, initDate, finalDate, exchange, completeOnly,
+                            exWeekends, data_type="daily")
 
     # hourly GDAX price for Litecoin (2000 row limit - use a loop)
     symbol = 'LTCUSD'
     exchange = 'GDAX'
     completeOnly = True
     exWeekends = False
-    hourlyData = gd.getHourly(symbol, initDate, finalDate, exchange, completeOnly,
-                            exWeekends)
+    hourlyData = gd.getCrypto(symbol, initDate, finalDate, exchange, completeOnly,
+                            exWeekends, data_type="hourly")
 
     # minutely Binance price for IOTA (2000 row limit - use a loop)
     symbol = 'IOTBTC'
     exchange = 'Binance'
     completeOnly = True
     exWeekends = False
-    minutelyData = gd.getMinutely(symbol, initDate, finalDate, exchange, completeOnly,
-                            exWeekends)
+    minutelyData = gd.getCrypto(symbol, initDate, finalDate, exchange, completeOnly,
+                            exWeekends, data_type="minutely")
 
     # dump to csv
     dailyData.to_csv('./csv/days.csv')

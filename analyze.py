@@ -11,7 +11,7 @@ pd.set_option('display.max_columns', 500)
 np.set_printoptions(linewidth=120, suppress=True)
 
 
-def analyze(initDate, finalDate, func=gd.getDaily):
+def analyze(initDate, finalDate, data_type="daily"):
 
     exchange = 'CCCAGG'
     completeOnly = True
@@ -19,31 +19,26 @@ def analyze(initDate, finalDate, func=gd.getDaily):
 
     # aggregated hourly price for Bitcoin (2000 row limit - use a loop)
     symbol = 'BTCUSD'
-    BTCUSD = func(symbol, initDate, finalDate, exchange, completeOnly, exWeekends)
+    BTCUSD = gd.getCrypto(symbol, initDate, finalDate, exchange, completeOnly, exWeekends, data_type=data_type)
 
     symbol = 'LTCBTC'
-    LTCBTC = func(symbol, initDate, finalDate, exchange, completeOnly, exWeekends)
-
-    symbol = 'IOTBTC'
-    IOTBTC = func(symbol, initDate, finalDate, exchange, completeOnly, exWeekends)
+    LTCBTC = gd.getCrypto(symbol, initDate, finalDate, exchange, completeOnly, exWeekends, data_type=data_type)
 
     symbol = 'ETHBTC'
-    ETHBTC = func(symbol, initDate, finalDate, exchange, completeOnly, exWeekends)
+    ETHBTC = gd.getCrypto(symbol, initDate, finalDate, exchange, completeOnly, exWeekends, data_type=data_type)
 
     # store to disk
     BTCUSD.to_csv('./csv/BTCUSD.csv')
     LTCBTC.to_csv('./csv/LTCBTC.csv')
-    IOTBTC.to_csv('./csv/IOTBTC.csv')
     ETHBTC.to_csv('./csv/ETHBTC.csv')
 
     # convert to pctdiffs
     dBTC = (BTCUSD.diff() / BTCUSD.shift()).dropna()
     dLTC = (LTCBTC.diff() / LTCBTC.shift()).dropna()
-    dIOT = (IOTBTC.diff() / IOTBTC.shift()).dropna()
     dETH = (ETHBTC.diff() / ETHBTC.shift()).dropna()
 
-    agg = pd.DataFrame([dBTC.Close, dLTC.Close, dIOT.Close, dETH.Close]).transpose()
-    agg.columns = ['dBTC', 'dLTC', 'dIOT', 'dETH']
+    agg = pd.DataFrame([dBTC.Close, dLTC.Close, dETH.Close]).transpose()
+    agg.columns = ['dBTC', 'dLTC', 'dETH']
 
     # check correlations
     cAgg = np.corrcoef(agg.dropna(), rowvar=False)
@@ -59,7 +54,6 @@ def analyze(initDate, finalDate, func=gd.getDaily):
     # test for stationarity
     percentile = .02
     spreadLTC = (dLTC / dBTC).Close.dropna()
-    spreadIOT = (dIOT / dBTC).Close.dropna()
     spreadETH = (dETH / dBTC).Close.dropna()
 
     # sBTC = adfuller(dBTC.Close)
@@ -71,7 +65,6 @@ def analyze(initDate, finalDate, func=gd.getDaily):
     k2, p = stats.normaltest(spreadLTC)  # p <= .05
 
     mLTC = middle((dLTC / dBTC).Close.dropna(), percentile)
-    mIOT = middle((dIOT / dBTC).Close.dropna(), percentile)
     mETH = middle((dETH / dBTC).Close.dropna(), percentile)
 
     sdLTC = np.std(mLTC)
@@ -123,15 +116,15 @@ def main():
     print("Daily")
     initDate = dt.datetime(2015, 1, 1)
     finalDate = dt.datetime(2019, 1, 1)
-    analyze(initDate, finalDate, gd.getDaily)
+    analyze(initDate, finalDate, "daily")
 
     print("Hourly")
     initDate = dt.datetime(2018, 12, 1)
     finalDate = dt.datetime(2019, 1, 1)
-    analyze(initDate, finalDate, gd.getHourly)
+    analyze(initDate, finalDate, "hourly")
 
     print("Minutely")
     initDate = dt.datetime(2018, 12, 25)
     finalDate = dt.datetime(2019, 1, 1)
-    analyze(initDate, finalDate, gd.getMinutely)
+    analyze(initDate, finalDate, "minutely")
     return
