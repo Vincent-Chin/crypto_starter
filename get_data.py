@@ -6,6 +6,7 @@ import json
 import datetime as dt
 import time
 import warnings
+import math
 
 
 #######################################################################
@@ -77,17 +78,17 @@ def getCrypto(symbol, initDate, finalDate, exchange="CCCAGG",
         if completeOnly and current_time.date() == endDate.date() and current_time.hour == endDate.hour and\
            current_time.minute == endDate.minute:
             endDate -= dt.timedelta(minutes=1)
-        limit = int(max(1, limit))
+        limit = int(max(1, limit / 60))
         baseURL = "https://min-api.cryptocompare.com/data/histominute"
 
     # the data hard limit is 2000, so if our request is too long, we'll need to automatically space it
     # into multiple pulls until the entire time series is requested.
     if limit > request_hard_limit:
-        requests = int(limit / request_hard_limit)
+        requests = math.ceil(limit / request_hard_limit)
         expected_time = requests * request_sleep_interval / 60 # in minutes
         message = ' '.join(["Note: Request for", symbol, "on interval", data_type,
                             "is greater than", str(request_hard_limit),
-                            "data rows at", str(limit), "data points.",
+                            "data rows at", str(limit), "data rows.",
                             "This request will be staged as", str(requests),
                             "requests.  Expected pull time: ", str(expected_time), "minutes."])
         warnings.warn(message)
@@ -149,7 +150,6 @@ def getCrypto(symbol, initDate, finalDate, exchange="CCCAGG",
     if len(info) > 0:
         info = info[info.close > 0].copy()
         info['time'] = pd.to_datetime(info.time, unit='s')
-        info = info.dropna()
         info.index = info.time
         info.index.name = 'Timestamp'
         info['Open'] = info.open
